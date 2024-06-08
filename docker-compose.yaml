@@ -1,0 +1,57 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: php
+        uid: 1000
+      context: ./
+      dockerfile: phpDockerfile
+    image: artsmonk-app
+    container_name: artsmonk-webapp
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./artsmonk_code:/var/www
+      - ./custom-php.ini:/usr/local/etc/php/conf.d/customer-php.ini
+    networks:
+      - artsmonk-network
+    depends_on:
+      - db        
+  db:
+    image: mysql:8.0
+    container_name: artsmonk-mysql
+    restart: unless-stopped
+    environment:
+      #MYSQL_HOSTNAME: 127.0.0.1
+      WA_DB_ENGINE: MYSQL
+      WA_DB_HOSTNAME: db
+      MYSQL_DATABASE: artsmonk  #${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: abcd1234   #${DB_PASSWORD}
+      MYSQL_PASSWORD:  abcd1234  #${DB_PASSWORD}
+      MYSQL_USER: artsmonk #${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    expose:
+        - "33060"        
+    ports:
+      - '33060:3306'        
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./mysql:/docker-entrypoint-initdb.d
+    networks:
+      - artsmonk-network
+  nginx:
+    image: nginx:alpine
+    container_name: artsmonk-webserver
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./artsmonk_code:/var/www
+      - ./nginx:/etc/nginx/conf.d/
+    networks:
+      - artsmonk-network
+networks:
+  artsmonk-network:
+    driver: bridge
